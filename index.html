@@ -149,6 +149,16 @@
     user-select: none;
   }
   .marker:hover { transform: translate(-50%,-50%) scale(1.35); z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,.7); }
+
+  @media (max-width: 768px) {
+    .marker {
+      width: 16px; height: 16px;
+      font-size: 6px;
+      border-width: 1.5px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.5);
+    }
+    .marker:hover { transform: translate(-50%,-50%) scale(1.2); }
+  }
   .marker.available { background: #27ae60; }
   .marker.sold      { background: #c0392b; opacity: .8; }
   .marker.under-bid { background: #e67e22; }
