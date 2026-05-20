@@ -188,7 +188,7 @@
     box-shadow: 0 3px 12px rgba(0,0,0,.6);
   }
   .place-marker.has-photo { border-color: rgba(255,255,255,.6); }
-  .pm-icon { font-size: 13px; line-height: 1; }
+  .pm-icon { width: 14px; height: 14px; flex-shrink: 0; display: flex; align-items: center; }
 
   /* ── Foto-tooltip ── */
   .photo-tt {
@@ -440,37 +440,47 @@ async function loadFromWebhook() {
 }
 
 // ─── Locatiepins ─────────────────────────────────────────────────────────────
+const SVG = {
+  pool: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M3 10c1.5-2.5 3-2.5 4.5 0s3 2.5 4.5 0 3-2.5 4.5 0 3 2.5 4.5 0"/><path d="M3 17c1.5-2.5 3-2.5 4.5 0s3 2.5 4.5 0 3-2.5 4.5 0 3 2.5 4.5 0"/><circle cx="12" cy="4" r="1.5" fill="white" stroke="none"/><path d="M12 5.5v3l2 1.5"/></svg>',
+  mountain: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,20 12,5 21,20"/><polyline points="3,20 21,20"/><path d="M9,13 l3-2 l3 2"/></svg>',
+  restaurant: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M3 2v7c0 1.7 1.3 3 3 3v9"/><path d="M4.5 2v8M6 2v8"/><path d="M21 2v19M18 2c0 4.5 3 5.5 3 9v9"/></svg>',
+  home: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V10L12 3l9 7v12H3z"/><rect x="9" y="14" width="6" height="8" rx="0.5"/></svg>',
+};
+
 const placeMarkers = [
-  { id: 'zwembad',    label: 'Zwembad',    icon: '🏊',  pos: [16.5, 73.0],
+  { id: 'zwembad',    label: 'Zwembad',    icon: SVG.pool,       pos: [16.5, 73.0],
     photo: 'https://drive.google.com/thumbnail?id=1n0gNE8Dt2pnDa5R2eKviUmLl0JQL1Dbr&sz=w600' },
-  { id: 'restaurant', label: 'Restaurant', icon: '🍽️',  pos: [31.0, 64.5], photo: null },
-  { id: 'receptie',   label: 'Receptie',   icon: '🛎️',  pos: [25.0, 58.0], photo: null },
-  { id: 'tennis',     label: 'Tennisbaan', icon: '🎾',  pos: [59.0, 52.0], photo: null },
-  { id: 'uitzicht',   label: 'Uitzicht',   icon: '🌄',  pos: [22.0, 15.0],
+  { id: 'uitzicht',   label: 'Uitzicht',   icon: SVG.mountain,   pos: [22.0, 15.0],
     photo: 'https://drive.google.com/thumbnail?id=1QPijgQ31_GaB8DsdEAeCx3k_Dkw6Kwue&sz=w600' },
+  { id: 'restaurant', label: 'Restaurant', icon: SVG.restaurant, pos: [31.0, 64.5], photo: null },
+  { id: 'receptie',   label: 'Receptie',   icon: SVG.home,       pos: [25.0, 58.0], photo: null },
 ];
 
 const photoTT = document.createElement('div');
 photoTT.className = 'photo-tt';
 document.body.appendChild(photoTT);
+let ttSticky = false;
 
 function showPhotoTT(e, p) {
   if (!p.photo) return;
-  photoTT.innerHTML = `<img src="${p.photo}" alt="${p.label}" loading="lazy"><div class="pt-label">${p.label}</div>`;
+  photoTT.innerHTML = `<img src="${p.photo}" alt="${p.label}" loading="eager"><div class="pt-label">${p.label}</div>`;
   photoTT.classList.add('visible');
-  movePhotoTT(e);
+  placePhotoTT(e);
 }
-function movePhotoTT(e) {
-  const cx = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
-  const cy = e.clientY ?? (e.touches && e.touches[0].clientY) ?? 0;
-  const w = 260, h = 210;
+function placePhotoTT(e) {
+  const cx = e.clientX ?? (e.touches ? e.touches[0].clientX : 0);
+  const cy = e.clientY ?? (e.touches ? e.touches[0].clientY : 0);
+  const w = Math.min(260, window.innerWidth - 16);
   let lx = cx + 14, ly = cy - 20;
   if (lx + w > window.innerWidth  - 8) lx = cx - w - 14;
-  if (ly + h > window.innerHeight - 8) ly = cy - h;
+  if (ly + 220 > window.innerHeight - 8) ly = cy - 220;
   photoTT.style.left = lx + 'px';
   photoTT.style.top  = ly + 'px';
+  photoTT.style.maxWidth = w + 'px';
 }
-function hidePhotoTT() { photoTT.classList.remove('visible'); }
+function hidePhotoTT() { photoTT.classList.remove('visible'); ttSticky = false; }
+
+document.addEventListener('click', () => { if (!ttSticky) hidePhotoTT(); });
 
 function renderPlaceMarkers() {
   placeMarkers.forEach(p => {
@@ -481,20 +491,26 @@ function renderPlaceMarkers() {
     el.style.top  = p.pos[1] + '%';
     layer.appendChild(el);
 
-    el.addEventListener('mouseenter', e => showPhotoTT(e, p));
-    el.addEventListener('mousemove',  e => movePhotoTT(e));
-    el.addEventListener('mouseleave', hidePhotoTT);
+    // Desktop hover
+    el.addEventListener('mouseenter', e => { if (!ttSticky) showPhotoTT(e, p); });
+    el.addEventListener('mousemove',  e => { if (!ttSticky) placePhotoTT(e); });
+    el.addEventListener('mouseleave', ()  => { if (!ttSticky) hidePhotoTT(); });
+
+    // Click/tap: toggle sticky
     el.addEventListener('click', e => {
       e.stopPropagation();
-      if (p.photo) {
-        showPhotoTT(e, p);
-        document.addEventListener('click', hidePhotoTT, { once: true });
-      }
+      if (!p.photo) return;
+      if (ttSticky) { hidePhotoTT(); }
+      else          { ttSticky = true; showPhotoTT(e, p); }
     });
-    el.addEventListener('touchstart', e => {
+    el.addEventListener('touchend', e => {
+      e.preventDefault();
       e.stopPropagation();
-      if (p.photo) { showPhotoTT(e.touches[0], p); }
-    }, { passive: false });
+      if (!p.photo) return;
+      const t = e.changedTouches[0];
+      if (ttSticky) { hidePhotoTT(); }
+      else          { ttSticky = true; showPhotoTT(t, p); }
+    });
   });
 }
 renderPlaceMarkers();
