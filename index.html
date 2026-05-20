@@ -188,7 +188,7 @@
     box-shadow: 0 3px 12px rgba(0,0,0,.6);
   }
   .place-marker.has-photo { border-color: rgba(255,255,255,.6); }
-  .pm-icon { width: 11px; height: 11px; flex-shrink: 0; display: flex; align-items: center; }
+  .pm-icon { width: 11px; height: 11px; flex-shrink: 0; display: block; }
 
   /* ── Foto-tooltip ── */
   .photo-tt {
@@ -486,7 +486,7 @@ function renderPlaceMarkers() {
   placeMarkers.forEach(p => {
     const el = document.createElement('div');
     el.className = 'place-marker' + (p.photo ? ' has-photo' : '');
-    el.innerHTML = `<span class="pm-icon">${p.icon}</span><span>${p.label}</span>`;
+    el.innerHTML = `<img class="pm-icon" src="data:image/svg+xml,${encodeURIComponent(p.icon)}" alt=""><span>${p.label}</span>`;
     el.style.left = p.pos[0] + '%';
     el.style.top  = p.pos[1] + '%';
     layer.appendChild(el);
