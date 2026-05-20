@@ -392,6 +392,7 @@ function statusLabel(s) {
 // ─── Render: build/refresh all markers and stats ──────────────────────────────
 function render() {
   layer.innerHTML = '';
+  renderPlaceMarkers();
   const counts = { available: 0, 'under-bid': 0, sold: 0 };
   properties.forEach(p => counts[p.status]++);
   document.getElementById('stats').innerHTML = `
