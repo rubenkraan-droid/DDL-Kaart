@@ -159,6 +159,66 @@
     }
     .marker:hover { transform: translate(-50%,-50%) scale(1.2); }
   }
+
+  /* ── Locatiepins ── */
+  .place-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(15,30,50,.72);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,.35);
+    border-radius: 20px;
+    padding: 3px 9px 3px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background .15s, transform .15s, box-shadow .15s;
+    user-select: none;
+    letter-spacing: .01em;
+  }
+  .place-marker:hover {
+    background: rgba(15,30,50,.92);
+    transform: translate(-50%,-50%) scale(1.07);
+    box-shadow: 0 3px 12px rgba(0,0,0,.6);
+  }
+  .place-marker.has-photo { border-color: rgba(255,255,255,.6); }
+  .pm-icon { font-size: 13px; line-height: 1; }
+
+  /* ── Foto-tooltip ── */
+  .photo-tt {
+    position: fixed;
+    background: #111;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,.75);
+    z-index: 2000;
+    width: 260px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s;
+  }
+  .photo-tt.visible { opacity: 1; }
+  .photo-tt img { width: 100%; display: block; max-height: 170px; object-fit: cover; }
+  .photo-tt .pt-label {
+    padding: 7px 11px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #fff;
+    background: #111;
+  }
+
+  @media (max-width: 768px) {
+    .place-marker { font-size: 9px; padding: 2px 7px 2px 5px; }
+    .pm-icon { font-size: 11px; }
+    .photo-tt { width: 200px; }
+    .photo-tt img { max-height: 130px; }
+  }
   .marker.available { background: #27ae60; }
   .marker.sold      { background: #c0392b; opacity: .8; }
   .marker.under-bid { background: #e67e22; }
@@ -378,6 +438,66 @@ async function loadFromWebhook() {
     console.error(err);
   }
 }
+
+// ─── Locatiepins ─────────────────────────────────────────────────────────────
+const placeMarkers = [
+  { id: 'zwembad',    label: 'Zwembad',    icon: '🏊',  pos: [16.5, 73.0],
+    photo: 'https://drive.google.com/thumbnail?id=1n0gNE8Dt2pnDa5R2eKviUmLl0JQL1Dbr&sz=w600' },
+  { id: 'restaurant', label: 'Restaurant', icon: '🍽️',  pos: [31.0, 64.5], photo: null },
+  { id: 'receptie',   label: 'Receptie',   icon: '🛎️',  pos: [25.0, 58.0], photo: null },
+  { id: 'tennis',     label: 'Tennisbaan', icon: '🎾',  pos: [59.0, 52.0], photo: null },
+  { id: 'uitzicht',   label: 'Uitzicht',   icon: '🌄',  pos: [22.0, 15.0],
+    photo: 'https://drive.google.com/thumbnail?id=1QPijgQ31_GaB8DsdEAeCx3k_Dkw6Kwue&sz=w600' },
+];
+
+const photoTT = document.createElement('div');
+photoTT.className = 'photo-tt';
+document.body.appendChild(photoTT);
+
+function showPhotoTT(e, p) {
+  if (!p.photo) return;
+  photoTT.innerHTML = `<img src="${p.photo}" alt="${p.label}" loading="lazy"><div class="pt-label">${p.label}</div>`;
+  photoTT.classList.add('visible');
+  movePhotoTT(e);
+}
+function movePhotoTT(e) {
+  const cx = e.clientX ?? (e.touches && e.touches[0].clientX) ?? 0;
+  const cy = e.clientY ?? (e.touches && e.touches[0].clientY) ?? 0;
+  const w = 260, h = 210;
+  let lx = cx + 14, ly = cy - 20;
+  if (lx + w > window.innerWidth  - 8) lx = cx - w - 14;
+  if (ly + h > window.innerHeight - 8) ly = cy - h;
+  photoTT.style.left = lx + 'px';
+  photoTT.style.top  = ly + 'px';
+}
+function hidePhotoTT() { photoTT.classList.remove('visible'); }
+
+function renderPlaceMarkers() {
+  placeMarkers.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'place-marker' + (p.photo ? ' has-photo' : '');
+    el.innerHTML = `<span class="pm-icon">${p.icon}</span><span>${p.label}</span>`;
+    el.style.left = p.pos[0] + '%';
+    el.style.top  = p.pos[1] + '%';
+    layer.appendChild(el);
+
+    el.addEventListener('mouseenter', e => showPhotoTT(e, p));
+    el.addEventListener('mousemove',  e => movePhotoTT(e));
+    el.addEventListener('mouseleave', hidePhotoTT);
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (p.photo) {
+        showPhotoTT(e, p);
+        document.addEventListener('click', hidePhotoTT, { once: true });
+      }
+    });
+    el.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      if (p.photo) { showPhotoTT(e.touches[0], p); }
+    }, { passive: false });
+  });
+}
+renderPlaceMarkers();
 
 loadFromWebhook();
 
